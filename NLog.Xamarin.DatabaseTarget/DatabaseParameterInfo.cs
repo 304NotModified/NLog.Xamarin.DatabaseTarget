@@ -164,7 +164,7 @@ namespace NLog.Targets
             {
                 _dbPropertyInfoType = dbParameterType;
                 _dbTypeName = dbTypeName;
-                if (!StringHelpers.IsNullOrWhiteSpace(dbTypeName))
+                if (!string.IsNullOrWhiteSpace(dbTypeName))
                 {
                     string[] dbTypeNames = dbTypeName.SplitAndTrimTokens('.');
                     if (dbTypeNames.Length > 1 && !string.Equals(dbTypeNames[0], nameof(System.Data.DbType), StringComparison.OrdinalIgnoreCase))
@@ -183,7 +183,7 @@ namespace NLog.Targets
                     }
                     else
                     {
-                        if (ConversionHelpers.TryParse(dbTypeNames[dbTypeNames.Length - 1], out DbType dbType))
+                        if (Enum.TryParse(dbTypeNames[dbTypeNames.Length - 1], out DbType dbType))
                         {
                             _dbTypeValue = dbType;
                             ParameterType = TryLookupParameterType(dbType);
@@ -304,7 +304,7 @@ namespace NLog.Targets
                 bool IEnumTypeConverter.TryParseEnum(string value, out Enum enumValue)
                 {
                     TEnum enumValueT;
-                    if (ConversionHelpers.TryParse(value, out enumValueT))
+                    if (Enum.TryParse(value, out enumValueT))
                     {
                         enumValue = enumValueT as Enum;
                         return enumValue != null;

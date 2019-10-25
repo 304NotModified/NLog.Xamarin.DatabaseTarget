@@ -85,7 +85,7 @@ namespace NLog.Targets
         {
             InstallDdlCommands = new List<DatabaseCommandInfo>();
             UninstallDdlCommands = new List<DatabaseCommandInfo>();
-            DBProvider = "sqlserver";
+            DBProvider = "sqlite";
             DBHost = ".";
 #if !NETSTANDARD
             ConnectionStringsSettings = ConfigurationManager.ConnectionStrings;
@@ -495,7 +495,7 @@ namespace NLog.Targets
 #if NETSTANDARD
                         var assembly = Assembly.Load(new AssemblyName("System.Data.SqlClient"));
 #else
-                        var assembly = typeof(IDbConnection).GetAssembly();
+                        var assembly = typeof(IDbConnection).Assembly;
 #endif
                         ConnectionType = assembly.GetType("System.Data.SqlClient.SqlConnection", true, true);
                         break;
@@ -503,7 +503,7 @@ namespace NLog.Targets
 #if !NETSTANDARD
                 case "OLEDB":
                     {
-                        var assembly = typeof(IDbConnection).GetAssembly();
+                        var assembly = typeof(IDbConnection).Assembly;
                         ConnectionType = assembly.GetType("System.Data.OleDb.OleDbConnection", true, true);
                         break;
                     }
@@ -514,7 +514,7 @@ namespace NLog.Targets
 #if NETSTANDARD
                         var assembly = Assembly.Load(new AssemblyName("System.Data.Odbc"));
 #else
-                        var assembly = typeof(IDbConnection).GetAssembly();
+                        var assembly = typeof(IDbConnection).Assembly;
 #endif
                         ConnectionType = assembly.GetType("System.Data.Odbc.OdbcConnection", true, true);
                         break;
@@ -651,19 +651,12 @@ namespace NLog.Targets
             var commandText = RenderLogEvent(CommandText, logEvent);
             InternalLogger.Trace("DatabaseTarget(Name={0}): Executing {1}: {2}", Name, CommandType, commandText);
 
-            //Always suppress transaction so that the caller does not rollback logging if they are rolling back their transaction.
-            using (TransactionScope transactionScope = new TransactionScope(TransactionScopeOption.Suppress))
+            EnsureConnectionOpen(connectionString);
+
+            using (IDbCommand command = CreateDbCommandWithParameters(logEvent, CommandType, commandText, Parameters))
             {
-                EnsureConnectionOpen(connectionString);
-
-                using (IDbCommand command = CreateDbCommandWithParameters(logEvent, CommandType, commandText, Parameters))
-                {
-                    int result = command.ExecuteNonQuery();
-                    InternalLogger.Trace("DatabaseTarget(Name={0}): Finished execution, result = {1}", Name, result);
-                }
-
-                //not really needed as there is no transaction at all.
-                transactionScope.Complete();
+                int result = command.ExecuteNonQuery();
+                InternalLogger.Trace("DatabaseTarget(Name={0}): Finished execution, result = {1}", Name, result);
             }
         }
 
