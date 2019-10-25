@@ -31,12 +31,12 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
-namespace NLog.Internal
-{
-    using System;
-    using System.Threading;
-    using NLog.Common;
+using System;
+using System.Threading;
+using NLog.Common;
 
+namespace NLog.Xamarin.DatabaseTarget.Helpers
+{
     /// <summary>
     /// Helper class for dealing with exceptions.
     /// </summary>

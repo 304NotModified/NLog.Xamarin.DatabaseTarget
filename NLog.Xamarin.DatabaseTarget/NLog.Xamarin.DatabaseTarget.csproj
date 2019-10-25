@@ -48,15 +48,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ArrayHelper.cs" />
-    <Compile Include="TransformedLayout.cs" />
-    <Compile Include="SortHelpers.cs" />
-    <Compile Include="StringHelpers.cs" />
-    <Compile Include="ReflectionHelpers.cs" />
+    <Compile Include="Helpers\ArrayHelper.cs" />
+    <Compile Include="Helpers\TransformedLayout.cs" />
+    <Compile Include="Helpers\SortHelpers.cs" />
+    <Compile Include="Helpers\StringHelpers.cs" />
+    <Compile Include="Helpers\ReflectionHelpers.cs" />
     <Compile Include="DatabaseTarget.cs" />
     <Compile Include="DatabaseCommandInfo.cs" />
     <Compile Include="DatabaseParameterInfo.cs" />
-    <Compile Include="ExceptionHelper.cs" />
+    <Compile Include="Helpers\ExceptionHelper.cs" />
     <Compile Include="Resources\Resource.designer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

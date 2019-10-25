@@ -33,10 +33,9 @@
 
 using System;
 using JetBrains.Annotations;
-using NLog.Config;
 using NLog.Layouts;
 
-namespace NLog.Internal
+namespace NLog.Xamarin.DatabaseTarget.Helpers
 {
     /// <summary>
     /// Transformation on a layout. Pre-calculated if the layout has a fixed value.

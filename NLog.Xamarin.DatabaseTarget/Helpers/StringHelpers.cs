@@ -35,7 +35,7 @@ using System;
 using System.Linq;
 using JetBrains.Annotations;
 
-namespace NLog.Internal
+namespace NLog.Xamarin.DatabaseTarget.Helpers
 {
     /// <summary>
     /// Helpers for <see cref="string"/>.

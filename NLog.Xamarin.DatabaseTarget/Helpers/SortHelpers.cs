@@ -31,13 +31,13 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
-namespace NLog.Internal
-{
-    using System;
-    using System.Collections;
-    using System.Collections.Generic;
-    using Common;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using NLog.Common;
 
+namespace NLog.Xamarin.DatabaseTarget.Helpers
+{
     /// <summary>
     /// Provides helpers to sort log events and associated continuations.
     /// </summary>

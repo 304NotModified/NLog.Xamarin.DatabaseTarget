@@ -31,25 +31,20 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Data.Common;
+using System.Text;
+using NLog.Common;
+using NLog.Config;
+using NLog.Layouts;
+using NLog.Targets;
+using NLog.Xamarin.DatabaseTarget.Helpers;
 
-namespace NLog.Targets
+namespace NLog.Xamarin.DatabaseTarget
 {
-    using System;
-    using System.Collections.Generic;
-    using System.ComponentModel;
-
-    using System.Data;
-    using System.Data.Common;
-
-    using System.Text;
-
-
-    using NLog.Common;
-    using NLog.Config;
-    using NLog.Internal;
-    using NLog.Layouts;
-
-
     /// <summary>
     /// Writes log messages to the database using an ADO.NET provider.
     /// </summary>
@@ -87,11 +82,8 @@ namespace NLog.Targets
             UninstallDdlCommands = new List<DatabaseCommandInfo>();
             DBProvider = "sqlite";
             DBHost = ".";
-#if !NETSTANDARD
-            ConnectionStringsSettings = ConfigurationManager.ConnectionStrings;
-#endif
             CommandType = CommandType.Text;
-            OptimizeBufferReuse = GetType() == typeof(DatabaseTarget);  // Class not sealed, reduce breaking changes
+            OptimizeBufferReuse = true;
         }
 
         /// <summary>
@@ -132,16 +124,8 @@ namespace NLog.Targets
         /// </remarks>
         /// <docgen category='Connection Options' order='10' />
         [RequiredParameter]
-        [DefaultValue("sqlserver")]
+        [DefaultValue("sqlite")]
         public string DBProvider { get; set; }
-
-#if !NETSTANDARD
-        /// <summary>
-        /// Gets or sets the name of the connection string (as specified in <see href="https://msdn.microsoft.com/en-us/library/bf7sd233.aspx">&lt;connectionStrings&gt; configuration section</see>.
-        /// </summary>
-        /// <docgen category='Connection Options' order='10' />
-        public string ConnectionStringName { get; set; }
-#endif
 
         /// <summary>
         /// Gets or sets the connection string. When provided, it overrides the values
@@ -177,20 +161,6 @@ namespace NLog.Targets
         /// <docgen category='Connection Options' order='10' />
         [DefaultValue(false)]
         public bool KeepConnection { get; set; }
-
-        /// <summary>
-        /// Obsolete - value will be ignored! The logging code always runs outside of transaction. 
-        /// 
-        /// Gets or sets a value indicating whether to use database transactions. 
-        /// Some data providers require this.
-        /// </summary>
-        /// <docgen category='Connection Options' order='10' />
-        /// <remarks>
-        /// This option was removed in NLog 4.0 because the logging code always runs outside of transaction. 
-        /// This ensures that the log gets written to the database if you rollback the main transaction because of an error and want to log the error.
-        /// </remarks>
-        [Obsolete("Value will be ignored as logging code always executes outside of a transaction. Marked obsolete on NLog 4.0 and it will be removed in NLog 6.")]
-        public bool? UseTransactions { get; set; }
 
         /// <summary>
         /// Gets or sets the database host name. If the ConnectionString is not provided
@@ -263,12 +233,7 @@ namespace NLog.Targets
         [ArrayParameter(typeof(DatabaseParameterInfo), "parameter")]
         public IList<DatabaseParameterInfo> Parameters { get; } = new List<DatabaseParameterInfo>();
 
-#if !NETSTANDARD
         internal DbProviderFactory ProviderFactory { get; set; }
-
-        // this is so we can mock the connection string without creating sub-processes
-        internal ConnectionStringSettingsCollection ConnectionStringsSettings { get; set; }
-#endif
 
         internal Type ConnectionType { get; set; }
 
@@ -316,13 +281,11 @@ namespace NLog.Targets
         {
             IDbConnection connection;
 
-#if !NETSTANDARD
             if (ProviderFactory != null)
             {
                 connection = ProviderFactory.CreateConnection();
             }
             else
-#endif
             {
                 connection = (IDbConnection)Activator.CreateInstance(ConnectionType);
             }
@@ -346,40 +309,14 @@ namespace NLog.Targets
         {
             base.InitializeTarget();
 
-#pragma warning disable 618
-            if (UseTransactions.HasValue)
-#pragma warning restore 618
-            {
-                InternalLogger.Warn("DatabaseTarget(Name={0}): UseTransactions property is obsolete and will not be used - will be removed in NLog 6", Name);
-            }
-
             bool foundProvider = false;
             string providerName = string.Empty;
-
-#if !NETSTANDARD
-            if (!string.IsNullOrEmpty(ConnectionStringName))
-            {
-                // read connection string and provider factory from the configuration file
-                var cs = ConnectionStringsSettings[ConnectionStringName];
-                if (cs == null)
-                {
-                    throw new NLogConfigurationException($"Connection string '{ConnectionStringName}' is not declared in <connectionStrings /> section.");
-                }
-
-                if (!string.IsNullOrEmpty(cs.ConnectionString?.Trim()))
-                {
-                    ConnectionString = SimpleLayout.Escape(cs.ConnectionString.Trim());
-                }
-                providerName = cs.ProviderName?.Trim() ?? string.Empty;
-            }
-#endif
 
             if (ConnectionString != null)
             {
                 providerName = InitConnectionString(providerName);
             }
 
-#if !NETSTANDARD
             if (string.IsNullOrEmpty(providerName))
             {
                 providerName = GetProviderNameFromDbProviderFactories(providerName);
@@ -389,7 +326,6 @@ namespace NLog.Targets
             {
                 foundProvider = InitProviderFactory(providerName);
             }
-#endif
 
             if (!foundProvider)
             {
@@ -430,18 +366,12 @@ namespace NLog.Targets
             }
             catch (Exception ex)
             {
-#if !NETSTANDARD
-                if (!string.IsNullOrEmpty(ConnectionStringName))
-                    InternalLogger.Warn(ex, "DatabaseTarget(Name={0}): DbConnectionStringBuilder failed to parse '{1}' ConnectionString", Name, ConnectionStringName);
-                else
-#endif
-                    InternalLogger.Warn(ex, "DatabaseTarget(Name={0}): DbConnectionStringBuilder failed to parse ConnectionString", Name);
+                InternalLogger.Warn(ex, "DatabaseTarget(Name={0}): DbConnectionStringBuilder failed to parse ConnectionString", Name);
             }
 
             return providerName;
         }
 
-#if !NETSTANDARD
         private bool InitProviderFactory(string providerName)
         {
             bool foundProvider;
@@ -477,7 +407,6 @@ namespace NLog.Targets
 
             return providerName;
         }
-#endif
 
         /// <summary>
         /// Set the <see cref="ConnectionType"/> to use it for opening connections to the database.
@@ -569,20 +498,6 @@ namespace NLog.Targets
                     CloseConnection();
                 }
             }
-        }
-
-        /// <summary>
-        /// NOTE! Obsolete, instead override Write(IList{AsyncLogEventInfo} logEvents)
-        /// 
-        /// Writes an array of logging events to the log target. By default it iterates on all
-        /// events and passes them to "Write" method. Inheriting classes can use this method to
-        /// optimize batch writes.
-        /// </summary>
-        /// <param name="logEvents">Logging events to be written out.</param>
-        [Obsolete("Instead override Write(IList<AsyncLogEventInfo> logEvents. Marked obsolete on NLog 4.5")]
-        protected override void Write(AsyncLogEventInfo[] logEvents)
-        {
-            Write((IList<AsyncLogEventInfo>)logEvents);
         }
 
         /// <summary>
@@ -973,34 +888,35 @@ namespace NLog.Targets
         private bool TryGetConvertedRawValue(LogEventInfo logEvent, DatabaseParameterInfo parameterInfo, Type dbParameterType,
             IFormatProvider dbParameterCulture, out object value)
         {
-            if (parameterInfo.Layout.TryGetRawValue(logEvent, out var rawValue))
-            {
-                try
-                {
-                    InternalLogger.Trace("  DatabaseTarget: Attempt to convert raw value for '{0}' into {1}",
-                        parameterInfo.Name, dbParameterType?.Name);
-                    if (ReferenceEquals(rawValue, DBNull.Value))
-                    {
-                        value = rawValue;
-                        return true;
-                    }
+            //todo not supported yet
+            //if (parameterInfo.Layout.TryGetRawValue(logEvent, out var rawValue))
+            //{
+            //    try
+            //    {
+            //        InternalLogger.Trace("  DatabaseTarget: Attempt to convert raw value for '{0}' into {1}",
+            //            parameterInfo.Name, dbParameterType?.Name);
+            //        if (ReferenceEquals(rawValue, DBNull.Value))
+            //        {
+            //            value = rawValue;
+            //            return true;
+            //        }
 
-                    value = PropertyTypeConverter.Convert(rawValue, dbParameterType, parameterInfo.Format,
-                            dbParameterCulture);
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    if (ex.MustBeRethrownImmediately())
-                        throw;
+            //        value = PropertyTypeConverter.Convert(rawValue, dbParameterType, parameterInfo.Format,
+            //                dbParameterCulture);
+            //        return true;
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        if (ex.MustBeRethrownImmediately())
+            //            throw;
 
-                    InternalLogger.Warn(ex, "  DatabaseTarget: Failed to convert raw value for '{0}' into {1}",
-                        parameterInfo.Name, dbParameterType?.Name);
+            //        InternalLogger.Warn(ex, "  DatabaseTarget: Failed to convert raw value for '{0}' into {1}",
+            //            parameterInfo.Name, dbParameterType?.Name);
 
-                    if (ex.MustBeRethrown())
-                        throw;
-                }
-            }
+            //        if (ex.MustBeRethrown())
+            //            throw;
+            //    }
+            //}
 
             value = null;
             return false;
@@ -1025,43 +941,6 @@ namespace NLog.Targets
         {
             return parameterInfo.Culture ?? logEvent.FormatProvider ?? LoggingConfiguration?.DefaultCultureInfo;
         }
-
-#if NETSTANDARD1_0
-        /// <summary>
-        /// Fake transaction
-        /// 
-        /// Transactions aren't in .NET Core: https://github.com/dotnet/corefx/issues/2949
-        /// </summary>
-        private class TransactionScope : IDisposable
-        {
-            private readonly TransactionScopeOption suppress;
-
-            public TransactionScope(TransactionScopeOption suppress)
-            {
-                this.suppress = suppress;
-            }
-
-            public void Complete() { }
-
-            /// <summary>
-            ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-            /// </summary>
-            public void Dispose()
-            {
-
-            }
-        }
-
-        /// <summary>
-        /// Fake option
-        /// </summary>
-        private enum TransactionScopeOption
-        {
-            Required,
-            RequiresNew,
-            Suppress,
-        }
-#endif
     }
 }
 

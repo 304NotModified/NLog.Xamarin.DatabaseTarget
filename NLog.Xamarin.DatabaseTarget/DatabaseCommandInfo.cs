@@ -31,15 +31,14 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using NLog.Config;
+using NLog.Layouts;
 
-namespace NLog.Targets
+namespace NLog.Xamarin.DatabaseTarget
 {
-    using System.Collections.Generic;
-    using System.ComponentModel;
-    using System.Data;
-    using Config;
-    using Layouts;
-
     /// <summary>
     /// Information about database command + parameters.
     /// </summary>

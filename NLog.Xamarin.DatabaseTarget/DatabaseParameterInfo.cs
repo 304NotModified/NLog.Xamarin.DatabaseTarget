@@ -31,19 +31,17 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
+using System;
+using System.ComponentModel;
+using System.Data;
+using System.Globalization;
+using System.Reflection;
+using NLog.Config;
+using NLog.Layouts;
+using NLog.Xamarin.DatabaseTarget.Helpers;
 
-namespace NLog.Targets
+namespace NLog.Xamarin.DatabaseTarget
 {
-    using System;
-    using System.ComponentModel;
-    using System.Data;
-    using System.Globalization;
-    using System.Reflection;
-    using NLog.Common;
-    using NLog.Config;
-    using NLog.Internal;
-    using NLog.Layouts;
-
     /// <summary>
     /// Represents a parameter to a Database target.
     /// </summary>
